@@ -1,24 +1,44 @@
-
-
 //
-#include <boost\asio.hpp>
-#include <boost\date_time\posix_time\posix_time.hpp>
-#include <iostream>
+// timer.cpp
+// ~~~~~~~~~
+//
+// Copyright (c) 2003-2015 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+//
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+//
 
-void print(const boost::system::error_code &)
+#include <iostream>
+#include <boost/asio.hpp>
+#include <boost/bind.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
+
+void print(const boost::system::error_code& /*e*/,
+    boost::asio::deadline_timer* t, int* count)
 {
-    std::cout << "print() called" << std::endl;
+    if (*count < 5)
+    {
+        std::cout << *count << std::endl;
+        ++(*count);
+
+        t->expires_at(t->expires_at() + boost::posix_time::seconds(1));
+        t->async_wait(boost::bind(print,
+            boost::asio::placeholders::error, t, count));
+    }
 }
 
 int main()
 {
-    boost::asio::io_service io_service;
-    boost::asio::deadline_timer t(io_service, boost::posix_time::seconds(5));
+    boost::asio::io_service io;
 
-    t.async_wait(&print);
+    int count = 0;
+    boost::asio::deadline_timer t(io, boost::posix_time::seconds(1));
+    t.async_wait(boost::bind(print,
+        boost::asio::placeholders::error, &t, &count));
 
-    io_service.run();
+    io.run();
+
+    std::cout << "Final count is " << count << std::endl;
 
     return 0;
 }
-
